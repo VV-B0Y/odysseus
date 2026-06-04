@@ -598,7 +598,7 @@ def _append_llama_cpp_linux_accel_build_lines(runner_lines: list[str]) -> None:
     # tooling can expose nvcc without shipping libcudart, causing cmake to fail
     # mid-build with "CUDA runtime library not found". Check cudart explicitly
     # via a small helper so the guard stays readable.
-    runner_lines.append('      _basedcode-ai_has_cudart() {')
+    runner_lines.append('      _basedcode_ai_has_cudart() {')
     runner_lines.append('        ldconfig -p 2>/dev/null | grep -q \'libcudart\\.so\' && return 0')
     runner_lines.append('        local _cuh="${CUDA_HOME:-/usr/local/cuda}"')
     runner_lines.append('        ls "$_cuh/lib64/libcudart.so"* &>/dev/null && return 0')
@@ -608,7 +608,7 @@ def _append_llama_cpp_linux_accel_build_lines(runner_lines: list[str]) -> None:
     runner_lines.append('        ls "${_cuh%/cuda_nvcc}/cuda_runtime/lib/libcudart.so"* &>/dev/null && return 0')
     runner_lines.append('        return 1')
     runner_lines.append('      }')
-    runner_lines.append('      if _basedcode-ai_has_cudart; then')
+    runner_lines.append('      if _basedcode_ai_has_cudart; then')
     runner_lines.append('        echo "[basedcode-ai] CUDA nvcc + cudart found — building llama-server with CUDA (GPU) support..."')
     runner_lines.append('        cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON && cmake --build build -j"$NPROC" --target llama-server && ln -sf ~/llama.cpp/build/bin/llama-server ~/bin/llama-server')
     runner_lines.append('      else')

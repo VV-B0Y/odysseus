@@ -434,8 +434,8 @@ def _init_scheduled_db():
         cols = [r[1] for r in conn.execute("PRAGMA table_info(scheduled_emails)").fetchall()]
         if "account_id" not in cols:
             conn.execute("ALTER TABLE scheduled_emails ADD COLUMN account_id TEXT")
-        if "basedcode-ai_kind" not in cols:
-            conn.execute("ALTER TABLE scheduled_emails ADD COLUMN basedcode-ai_kind TEXT")
+        if "basedcode_ai_kind" not in cols:
+            conn.execute("ALTER TABLE scheduled_emails ADD COLUMN basedcode_ai_kind TEXT")
         if "owner" not in cols:
             conn.execute("ALTER TABLE scheduled_emails ADD COLUMN owner TEXT DEFAULT ''")
         conn.execute("CREATE INDEX IF NOT EXISTS ix_scheduled_emails_owner_status ON scheduled_emails(owner, status)")
@@ -1381,7 +1381,7 @@ class SendEmailRequest(BaseModel):
     # Which account to send from. None = default account.
     account_id: Optional[str] = None
     # Internal marker for BasedCode AI-generated mail (e.g. reminder, scheduled).
-    basedcode-ai_kind: Optional[str] = None
+    basedcode_ai_kind: Optional[str] = None
     # If true, /send waits for SMTP + Sent append and returns the sent UID.
     wait_for_delivery: bool = False
 

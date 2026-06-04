@@ -316,7 +316,7 @@ def _move_email_message(conn, uid: str, dest: str, role: str = "") -> bool:
     return False
 
 
-def _apply_basedcode-ai_headers(msg, kind: str | None = None, ref_id: str | None = None):
+def _apply_basedcode_ai_headers(msg, kind: str | None = None, ref_id: str | None = None):
     msg["X-BasedCode AI-Origin"] = BASEDCODE_AI_MAIL_ORIGIN
     if kind:
         msg["X-BasedCode AI-Kind"] = re.sub(r"[^A-Za-z0-9_.-]", "-", kind)[:64]
@@ -1747,7 +1747,7 @@ def setup_email_routes():
             return {"success": False, "error": "Mail operation failed"}
 
     @router.delete("/basedcode-ai/reminders")
-    async def delete_basedcode-ai_reminder_emails(
+    async def delete_basedcode_ai_reminder_emails(
         account_id: str | None = Query(None),
         permanent: bool = Query(False),
         owner: str = Depends(require_owner),
@@ -1818,7 +1818,7 @@ def setup_email_routes():
             _invalidate_list_cache(account_id)
             return {"success": True, "deleted": deleted, "folders_checked": folders_checked}
         except Exception as e:
-            logger.error(f"delete_basedcode-ai_reminder_emails failed: {e}")
+            logger.error(f"delete_basedcode_ai_reminder_emails failed: {e}")
             return {"success": False, "error": "Mail operation failed"}
 
     @router.post("/move/{uid}")
@@ -1918,7 +1918,7 @@ def setup_email_routes():
 
     async def _send_email_sync(
         to, cc, bcc, subject, body, in_reply_to, references, attachments,
-        account_id=None, owner="", basedcode-ai_kind=None, basedcode-ai_ref=None,
+        account_id=None, owner="", basedcode_ai_kind=None, basedcode_ai_ref=None,
     ):
         """Shared send logic used by both /send and scheduled delivery.
 
@@ -1942,7 +1942,7 @@ def setup_email_routes():
             outer["Cc"] = cc
         outer["Subject"] = subject or ""
         outer["Date"] = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S +0000")
-        _apply_basedcode-ai_headers(outer, basedcode-ai_kind or "scheduled", basedcode-ai_ref)
+        _apply_basedcode_ai_headers(outer, basedcode_ai_kind or "scheduled", basedcode_ai_ref)
         if in_reply_to:
             outer["In-Reply-To"] = in_reply_to
         if references:
@@ -2001,7 +2001,7 @@ def setup_email_routes():
             conn = sqlite3.connect(SCHEDULED_DB)
             conn.execute("""
                 INSERT INTO scheduled_emails
-                (id, to_addr, cc, bcc, subject, body, in_reply_to, references_hdr, attachments, send_at, created_at, status, account_id, basedcode-ai_kind, owner)
+                (id, to_addr, cc, bcc, subject, body, in_reply_to, references_hdr, attachments, send_at, created_at, status, account_id, basedcode_ai_kind, owner)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
             """, (
                 sid,
@@ -2016,7 +2016,7 @@ def setup_email_routes():
                 send_at,
                 datetime.utcnow().isoformat(),
                 req.get("account_id") or None,
-                req.get("basedcode-ai_kind") or "scheduled",
+                req.get("basedcode_ai_kind") or "scheduled",
                 owner or "",
             ))
             conn.commit()
@@ -2151,8 +2151,8 @@ def setup_email_routes():
             outer["In-Reply-To"] = req.in_reply_to
         if req.references:
             outer["References"] = req.references
-        if req.basedcode-ai_kind:
-            _apply_basedcode-ai_headers(outer, req.basedcode-ai_kind)
+        if req.basedcode_ai_kind:
+            _apply_basedcode_ai_headers(outer, req.basedcode_ai_kind)
 
         # Plain + HTML body. Escape user content so a `<script>` or
         # `<img onerror=...>` paste in compose doesn't end up as live HTML

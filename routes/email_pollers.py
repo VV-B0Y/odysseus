@@ -978,7 +978,7 @@ def _scheduled_poll_once() -> dict:
         now_iso = datetime.utcnow().isoformat()
         conn = sqlite3.connect(SCHEDULED_DB)
         cols = [row[1] for row in conn.execute("PRAGMA table_info(scheduled_emails)").fetchall()]
-        kind_expr = "basedcode-ai_kind" if "basedcode-ai_kind" in cols else "'scheduled' AS basedcode-ai_kind"
+        kind_expr = "basedcode_ai_kind" if "basedcode_ai_kind" in cols else "'scheduled' AS basedcode_ai_kind"
         owner_expr = "owner" if "owner" in cols else "'' AS owner"
         rows = conn.execute(f"""
             SELECT id, to_addr, cc, bcc, subject, body, in_reply_to, references_hdr, attachments, account_id, {kind_expr}, {owner_expr}
@@ -992,7 +992,7 @@ def _scheduled_poll_once() -> dict:
             try:
                 attachments = json.loads(r[8] or "[]")
                 row_account_id = r[9] if len(r) > 9 else None
-                basedcode-ai_kind = r[10] if len(r) > 10 else "scheduled"
+                basedcode_ai_kind = r[10] if len(r) > 10 else "scheduled"
                 row_owner = (r[11] if len(r) > 11 else "") or _owner_for_email_account(row_account_id)
                 cfg = _get_email_config(row_account_id, owner=row_owner)
                 has_atts = bool(attachments)
@@ -1009,7 +1009,7 @@ def _scheduled_poll_once() -> dict:
                 outer["Subject"] = r[4] or ""
                 outer["Date"] = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S +0000")
                 outer["X-BasedCode AI-Origin"] = "basedcode-ai"
-                outer["X-BasedCode AI-Kind"] = re.sub(r"[^A-Za-z0-9_.-]", "-", basedcode-ai_kind or "scheduled")[:64]
+                outer["X-BasedCode AI-Kind"] = re.sub(r"[^A-Za-z0-9_.-]", "-", basedcode_ai_kind or "scheduled")[:64]
                 outer["X-BasedCode AI-Ref"] = sid
                 if r[6]:
                     outer["In-Reply-To"] = r[6]

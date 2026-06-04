@@ -392,7 +392,7 @@ def test_llama_cpp_linux_bootstrap_checks_cudart_before_cuda_build():
     _append_llama_cpp_linux_accel_build_lines(runner_lines)
     script = "\n".join(runner_lines)
 
-    assert '_basedcode-ai_has_cudart' in script
+    assert '_basedcode_ai_has_cudart' in script
     assert "grep -q 'libcudart\\.so'" in script
     # lib64 and lib variants for CUDA_HOME and /usr/local/cuda
     assert '$_cuh/lib64/libcudart.so' in script
@@ -402,7 +402,7 @@ def test_llama_cpp_linux_bootstrap_checks_cudart_before_cuda_build():
     # pip-installed nvidia runtime wheel sibling path
     assert 'cuda_runtime/lib/libcudart.so' in script
     # entire helper definition precedes the CUDA cmake invocation
-    assert script.index('_basedcode-ai_has_cudart') < script.index('DGGML_CUDA=ON')
+    assert script.index('_basedcode_ai_has_cudart') < script.index('DGGML_CUDA=ON')
 
 
 def test_llama_cpp_linux_bootstrap_cuda_cmake_present_when_cudart_found():

@@ -85,7 +85,7 @@ def test_amd_standalone_equals_base_plus_overlay(base):
 
 
 @pytest.mark.parametrize("standalone_path", [NVIDIA_STANDALONE, AMD_STANDALONE])
-def test_non_basedcode-ai_services_match_base(base, standalone_path):
+def test_non_basedcode_ai_services_match_base(base, standalone_path):
     standalone = _load(standalone_path)
     for name, definition in base["services"].items():
         if name == SERVICE:
@@ -103,7 +103,7 @@ def test_top_level_volumes_match_base(base, standalone_path):
 # --- basedcode-ai = base service + only the overlay additions ------------------
 
 
-def test_nvidia_basedcode-ai_adds_only_overlay(base):
+def test_nvidia_basedcode_ai_adds_only_overlay(base):
     standalone = _load(NVIDIA_STANDALONE)
     svc = standalone["services"][SERVICE]
     base_svc = base["services"][SERVICE]
@@ -129,7 +129,7 @@ def test_nvidia_basedcode-ai_adds_only_overlay(base):
     assert "group_add" not in svc
 
 
-def test_amd_basedcode-ai_adds_only_overlay(base):
+def test_amd_basedcode_ai_adds_only_overlay(base):
     standalone = _load(AMD_STANDALONE)
     svc = standalone["services"][SERVICE]
     base_svc = base["services"][SERVICE]
