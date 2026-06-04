@@ -1,5 +1,5 @@
 """
-Basic tests for odysseus-ui application structure
+Basic tests for basedcode-ai application structure
 """
 import pytest
 import sys
