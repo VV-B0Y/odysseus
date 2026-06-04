@@ -13,6 +13,50 @@ Odysseus has two branches:
 
 End-users cloning the repo will land on `dev` by default. To run the curated/stable version: `git checkout main` after clone.
 
+## Keeping your fork branch in sync safely
+
+If you maintain a long-lived branch in your fork, use a three-branch model:
+
+- **Tracking branch** (recommended: `sync/dev`): mirrors upstream and stays clean.
+- **Working branch** (your long-lived branch): where ongoing fork work happens.
+- **Short-lived feature branches** (optional): for risky work before merging back.
+
+Do not develop on the tracking branch directly.
+
+Use the helper script:
+
+```bash
+scripts/sync-fork-branch.sh
+```
+
+Default behavior:
+
+- Tracks upstream `dev`
+- Uses merge mode (no history rewrite)
+- Creates a backup branch before syncing
+- Refreshes tracking branch to upstream
+- Integrates tracking branch into your working branch
+- Runs checks from this guide (`pytest`, `py_compile`, `node --check` on changed `static/js` files)
+
+Common options:
+
+```bash
+# Track upstream main instead of dev
+scripts/sync-fork-branch.sh --track-branch main
+
+# Rebase workflow (history rewrite; single-maintainer branches only)
+scripts/sync-fork-branch.sh --mode rebase --allow-history-rewrite
+```
+
+Recommended guardrails:
+
+- Keep your working tree clean before every sync.
+- Sync frequently (small deltas).
+- Keep commits small and scoped.
+- Isolate formatting/refactor-only work from behavior changes.
+- Resolve conflicts immediately, then re-run checks.
+- Keep a brief sync note in your PR description (the script also appends local entries to `.git/odysseus-sync.log`).
+
 ## Before You Start
 
 - Search existing issues and pull requests before opening a new one.
@@ -118,4 +162,3 @@ Issues with only "help", "does not work", or a screenshot without context may be
 Do not post secrets, API keys, private logs, personal documents, or public IPs in issues or pull requests.
 
 For security reports, follow [SECURITY.md](SECURITY.md).
-
