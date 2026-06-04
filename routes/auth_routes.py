@@ -71,6 +71,8 @@ class SetOpenRegistrationRequest(BaseModel):
     enabled: bool
 
 SESSION_COOKIE = "basedcode_session"
+# Transitional fallback for existing browsers after the rebrand.
+# Remove in the next major release once legacy Odysseus cookies are no longer supported.
 LEGACY_SESSION_COOKIE = "odysseus_session"
 
 

@@ -351,6 +351,8 @@ def setup_research_routes(research_handler, session_manager=None) -> APIRouter:
         from src.auth_helpers import require_privilege
         user = require_privilege(request, "can_use_research")
         if user == "internal-tool":
+            # Transitional fallback for existing tool callers after the rebrand.
+            # Remove in the next major release once legacy Odysseus headers are retired.
             tool_owner = (
                 request.headers.get("X-BasedCode-Owner")
                 or request.headers.get("X-Odysseus-Owner")
