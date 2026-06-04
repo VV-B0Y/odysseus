@@ -257,6 +257,72 @@ do not run on macOS. MLX-only models are not served by BasedCode AI.
 
 </details>
 
+### Termux (Android ARM64)
+
+Run Odysseus on your phone using [Termux](https://f-droid.org/en/packages/com.termux/) —
+no root required.  The interactive installer handles system packages, lets you
+pick which optional features to include, and writes a `.env` tuned for mobile.
+
+**Quick start:**
+
+```bash
+# 1. Install Termux from F-Droid (not Google Play — the Play version is outdated)
+# 2. Open Termux and run:
+pkg install git
+git clone https://github.com/pewdiepie-archdaemon/basedcode-ai.git
+cd basedcode-ai
+bash install-termux.sh
+```
+
+The script will:
+- Install required Termux system packages (`openssl`, `libffi`, `clang`, …)
+- Ask which optional features you want (RAG, CalDAV, MCP, …)
+- Write a `requirements-termux-selected.txt` and pip-install everything
+- Generate a `.env` with all GPU/desktop-only features pre-disabled
+
+Then start the server:
+
+```bash
+python -m uvicorn app:app --host 0.0.0.0 --port 7000
+```
+
+And open `http://127.0.0.1:7000` in a browser (or any device on the same Wi-Fi).
+
+**Features always available on Termux** (no GPU needed):
+Chat / agent, memory, session history, notes & tasks, calendar, contacts,
+web search, personal document RAG (optional), deep research, model discovery
+(points to your Ollama/LLM server), backup, presets, webhooks/ntfy.
+
+**Features disabled by default** (desktop/GPU only — can be re-enabled in `.env`):
+STT, TTS, Image Gallery, Email (IMAP/SMTP), Vault (Bitwarden CLI), Cookbook
+(model download/serve), Shell/PTY execution, Signature stamping, Companion
+bridge, HWFit GPU profiler, Codex/Claude IDE integrations.
+
+**Manual `.env` tuning** (without the installer):
+
+```ini
+# Disable desktop-only features individually
+FEATURE_TTS=false
+FEATURE_STT=false
+FEATURE_GALLERY=false
+FEATURE_EMAIL=false
+FEATURE_VAULT=false
+FEATURE_COOKBOOK=false
+FEATURE_SHELL=false
+FEATURE_SIGNATURE=false
+FEATURE_COMPANION=false
+FEATURE_HWFIT=false
+FEATURE_CODEX=false
+FEATURE_MCP=false
+```
+
+Set any of these to `true` to re-enable the module.  All features default to
+`true` on non-Termux installs so existing setups are unaffected.
+
+**Requirements:** Python 3.11+ (via `pkg install python`), an accessible LLM
+endpoint (e.g. Ollama running on your PC, reachable over Wi-Fi, or a cloud API
+key). The core app runs fully CPU-only — no GPU required on the phone itself.
+
 ### Native Windows
 
 **One-command launcher** (creates the venv, installs deps, runs setup, starts the
