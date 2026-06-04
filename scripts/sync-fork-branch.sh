@@ -191,8 +191,8 @@ fi
 
 if [ "${CREATE_BACKUP}" -eq 1 ]; then
     _step "Creating recovery backup branch"
-    SAFE_WORKING_BRANCH="$(printf '%s' "${WORKING_BRANCH}" | sed -e 's/%/%25/g' -e 's/\//%2F/g')"
-    BACKUP_BRANCH="${BACKUP_PREFIX}-${SAFE_WORKING_BRANCH}-$(date -u +%Y%m%d-%H%M%S)"
+    ENCODED_WORKING_BRANCH="$(printf '%s' "${WORKING_BRANCH}" | sed -e 's/%/%25/g' -e 's/\//%2F/g')"
+    BACKUP_BRANCH="${BACKUP_PREFIX}-${ENCODED_WORKING_BRANCH}-$(date -u +%Y%m%d-%H%M%S)"
     run_cmd git branch "${BACKUP_BRANCH}" "${WORKING_BRANCH}"
     _pass "Backup branch created: ${BACKUP_BRANCH}"
 else
@@ -223,10 +223,14 @@ if [ "${SKIP_CHECKS}" -eq 1 ]; then
 else
     _step "Running post-sync checks from CONTRIBUTING.md"
     if command -v python >/dev/null 2>&1; then
-        if python -m pytest; then
-            _pass "pytest passed."
+        if python -c "import pytest" >/dev/null 2>&1; then
+            if python -m pytest; then
+                _pass "pytest passed."
+            else
+                _warn "pytest ran but reported failures."
+            fi
         else
-            _warn "pytest failed or missing dependencies in this environment."
+            _warn "pytest is not installed in this environment."
         fi
         COMPILE_TARGETS=()
         [ -f app.py ] && COMPILE_TARGETS+=("app.py")
@@ -253,10 +257,10 @@ else
     if command -v node >/dev/null 2>&1; then
         CHANGED_JS="$(git diff --name-only --diff-filter=ACMR "${START_COMMIT}"..HEAD | grep -E '^static/js/.+\.js$' || true)"
         if [ -n "${CHANGED_JS}" ]; then
-            while IFS= read -r file; do
-                [ -z "${file}" ] && continue
-                node --check "${file}" || {
-                    _fail "node --check failed for ${file}"
+            while IFS= read -r js_file; do
+                [ -z "${js_file}" ] && continue
+                node --check "${js_file}" || {
+                    _fail "node --check failed for ${js_file}"
                     exit 1
                 }
             done <<EOF
