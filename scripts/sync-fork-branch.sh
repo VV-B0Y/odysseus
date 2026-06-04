@@ -191,7 +191,7 @@ fi
 
 if [ "${CREATE_BACKUP}" -eq 1 ]; then
     _step "Creating recovery backup branch"
-    BACKUP_BRANCH="${BACKUP_PREFIX}/${WORKING_BRANCH//\//__}-$(date -u +%Y%m%d-%H%M%S)"
+    BACKUP_BRANCH="${BACKUP_PREFIX}-${WORKING_BRANCH//\//__}-$(date -u +%Y%m%d-%H%M%S)"
     run_cmd git branch "${BACKUP_BRANCH}" "${WORKING_BRANCH}"
     _pass "Backup branch created: ${BACKUP_BRANCH}"
 else
@@ -237,7 +237,10 @@ else
             fi
         done
         if [ "${#COMPILE_TARGETS[@]}" -gt 0 ]; then
-            python -m py_compile "${COMPILE_TARGETS[@]}"
+            python -m py_compile "${COMPILE_TARGETS[@]}" || {
+                _fail "py_compile failed. Re-run manually for details."
+                exit 1
+            }
             _pass "py_compile passed."
         else
             _warn "No Python compile targets found."
@@ -251,7 +254,10 @@ else
         if [ -n "${CHANGED_JS}" ]; then
             while IFS= read -r file; do
                 [ -z "${file}" ] && continue
-                node --check "${file}"
+                node --check "${file}" || {
+                    _fail "node --check failed for ${file}"
+                    exit 1
+                }
             done <<EOF
 ${CHANGED_JS}
 EOF
