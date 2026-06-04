@@ -8,7 +8,7 @@ set -euo pipefail
 
 TRACK_BRANCH="dev"
 UPSTREAM_REMOTE="upstream"
-UPSTREAM_URL="${UPSTREAM_URL:-https://github.com/pewdiepie-archdaemon/odysseus.git}"
+UPSTREAM_URL="${UPSTREAM_URL:-}"
 MODE="merge"
 ALLOW_HISTORY_REWRITE=0
 CREATE_BACKUP=1
@@ -122,8 +122,8 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-if [ -z "${TRACK_BRANCH}" ] || [ -z "${UPSTREAM_REMOTE}" ] || [ -z "${UPSTREAM_URL}" ]; then
-    _fail "track branch, upstream remote, and upstream url must be set."
+if [ -z "${TRACK_BRANCH}" ] || [ -z "${UPSTREAM_REMOTE}" ]; then
+    _fail "track branch and upstream remote must be set."
     exit 1
 fi
 
@@ -171,6 +171,10 @@ _step "Ensuring upstream remote '${UPSTREAM_REMOTE}' exists"
 if git remote get-url "${UPSTREAM_REMOTE}" >/dev/null 2>&1; then
     _info "Using existing ${UPSTREAM_REMOTE}: $(git remote get-url "${UPSTREAM_REMOTE}")"
 else
+    if [ -z "${UPSTREAM_URL}" ]; then
+        _fail "Remote '${UPSTREAM_REMOTE}' is missing. Set UPSTREAM_URL or pass --upstream-url."
+        exit 1
+    fi
     run_cmd git remote add "${UPSTREAM_REMOTE}" "${UPSTREAM_URL}"
     _pass "Added ${UPSTREAM_REMOTE} remote."
 fi
@@ -187,7 +191,7 @@ fi
 
 if [ "${CREATE_BACKUP}" -eq 1 ]; then
     _step "Creating recovery backup branch"
-    BACKUP_BRANCH="${BACKUP_PREFIX}/${WORKING_BRANCH//\//-}-$(date -u +%Y%m%d-%H%M%S)"
+    BACKUP_BRANCH="${BACKUP_PREFIX}/${WORKING_BRANCH//\//__}-$(date -u +%Y%m%d-%H%M%S)"
     run_cmd git branch "${BACKUP_BRANCH}" "${WORKING_BRANCH}"
     _pass "Backup branch created: ${BACKUP_BRANCH}"
 else
@@ -223,14 +227,27 @@ else
         else
             _warn "pytest failed or missing dependencies in this environment."
         fi
-        python -m py_compile app.py routes/*.py src/*.py core/*.py mcp_servers/*.py
-        _pass "py_compile passed."
+        COMPILE_TARGETS=()
+        [ -f app.py ] && COMPILE_TARGETS+=("app.py")
+        for _dir in routes src core mcp_servers; do
+            if [ -d "${_dir}" ]; then
+                while IFS= read -r _file; do
+                    COMPILE_TARGETS+=("${_file}")
+                done < <(find "${_dir}" -maxdepth 1 -type f -name '*.py' | sort)
+            fi
+        done
+        if [ "${#COMPILE_TARGETS[@]}" -gt 0 ]; then
+            python -m py_compile "${COMPILE_TARGETS[@]}"
+            _pass "py_compile passed."
+        else
+            _warn "No Python compile targets found."
+        fi
     else
         _warn "python not available, skipping python checks."
     fi
 
     if command -v node >/dev/null 2>&1; then
-        CHANGED_JS="$(git diff --name-only --diff-filter=ACMR "${START_COMMIT}"..HEAD -- 'static/js/*.js' 'static/js/**/*.js' || true)"
+        CHANGED_JS="$(git diff --name-only --diff-filter=ACMR "${START_COMMIT}"..HEAD -- 'static/js/**/*.js' || true)"
         if [ -n "${CHANGED_JS}" ]; then
             while IFS= read -r file; do
                 [ -z "${file}" ] && continue
@@ -261,5 +278,4 @@ SYNC_LOG_FILE="$(git rev-parse --git-dir)/odysseus-sync.log"
 } >> "${SYNC_LOG_FILE}"
 
 _pass "Sync log updated at ${SYNC_LOG_FILE}"
-_info "For upstream contributions, keep PR base set to dev unless maintainers request main."
-
+_info "For upstream contributions, keep PR base set to ${TRACK_BRANCH} unless maintainers request another base branch."
