@@ -55,7 +55,7 @@ Recommended guardrails:
 - Keep commits small and scoped.
 - Isolate formatting/refactor-only work from behavior changes.
 - Resolve conflicts immediately, then re-run checks.
-- Keep a brief sync note in your PR description (the script also appends local entries to `.git/odysseus-sync.log`).
+- Keep a brief sync note in your PR description (the script also appends local entries to `.git/fork-sync.log`).
 
 ## Before You Start
 

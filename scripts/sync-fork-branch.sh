@@ -250,7 +250,7 @@ else
     fi
 
     if command -v node >/dev/null 2>&1; then
-        CHANGED_JS="$(git diff --name-only --diff-filter=ACMR "${START_COMMIT}"..HEAD -- 'static/js/**/*.js' || true)"
+        CHANGED_JS="$(git diff --name-only --diff-filter=ACMR "${START_COMMIT}"..HEAD -- ':(glob)static/js/**/*.js' || true)"
         if [ -n "${CHANGED_JS}" ]; then
             while IFS= read -r file; do
                 [ -z "${file}" ] && continue
@@ -270,7 +270,7 @@ EOF
     fi
 fi
 
-SYNC_LOG_FILE="$(git rev-parse --git-dir)/odysseus-sync.log"
+SYNC_LOG_FILE="$(git rev-parse --git-dir)/fork-sync.log"
 {
     printf -- '- %s | working=%s | tracking=%s (%s/%s) | mode=%s | from=%s | to=%s\n' \
         "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
