@@ -1,10 +1,35 @@
 // static/js/storage.js
 // Centralized localStorage access with key constants and JSON parse safety
 
+const LEGACY_PREFIX = 'odysseus-';
+const CURRENT_PREFIX = 'basedcode-';
+
+function migrateLegacyKeys() {
+  try {
+    const moves = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(LEGACY_PREFIX)) continue;
+      const nextKey = CURRENT_PREFIX + key.slice(LEGACY_PREFIX.length);
+      if (localStorage.getItem(nextKey) === null) {
+        moves.push([key, nextKey, localStorage.getItem(key)]);
+      } else {
+        moves.push([key, null, null]);
+      }
+    }
+    moves.forEach(([oldKey, nextKey, value]) => {
+      if (nextKey !== null && value !== null) localStorage.setItem(nextKey, value);
+      localStorage.removeItem(oldKey);
+    });
+  } catch (_) {}
+}
+
+migrateLegacyKeys();
+
 // ── Key constants ──
 export const KEYS = {
-  THEME: 'odysseus-theme',
-  TOGGLES: 'odysseus-toggles',
+  THEME: 'basedcode-theme',
+  TOGGLES: 'basedcode-toggles',
   SIDEBAR_COLLAPSED: 'sidebar-collapsed',
   SIDEBAR_WIDTH: 'sidebar-width',
   SIDEBAR_SIDE: 'sidebar-side',
@@ -13,17 +38,17 @@ export const KEYS = {
   COMPARE_CHAT: 'compare-continue-chat',
   COMPARE_BLIND: 'compare-blind',
   COMPARE_RANDOM: 'compare-randomize',
-  MODELS_EXPANDED: 'odysseus-model-expanded',
-  MODEL_ENDPOINTS: 'odysseus-model-endpoints',
-  MODEL_SELECTED: 'odysseus-selected-model',
-  SORT_ORDER: 'odysseus-sessions-sort',
-  CHAT_SEARCH_SCOPE: 'odysseus-search-scope',
-  INCOGNITO: 'odysseus-incognito',
-  RAG_ACTIVE: 'odysseus-rag-active',
-  MCP_ACTIVE: 'odysseus-mcp-active',
+  MODELS_EXPANDED: 'basedcode-model-expanded',
+  MODEL_ENDPOINTS: 'basedcode-model-endpoints',
+  MODEL_SELECTED: 'basedcode-selected-model',
+  SORT_ORDER: 'basedcode-sessions-sort',
+  CHAT_SEARCH_SCOPE: 'basedcode-search-scope',
+  INCOGNITO: 'basedcode-incognito',
+  RAG_ACTIVE: 'basedcode-rag-active',
+  MCP_ACTIVE: 'basedcode-mcp-active',
   SECTION_ORDER: 'sidebar-section-order',
   ADMIN_LAST_TAB: 'admin-last-tab',
-  DENSITY: 'odysseus-density'
+  DENSITY: 'basedcode-density'
 };
 
 /**

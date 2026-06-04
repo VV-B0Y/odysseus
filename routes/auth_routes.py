@@ -70,7 +70,12 @@ class RenameUserRequest(BaseModel):
 class SetOpenRegistrationRequest(BaseModel):
     enabled: bool
 
-SESSION_COOKIE = "odysseus_session"
+SESSION_COOKIE = "basedcode_session"
+LEGACY_SESSION_COOKIE = "odysseus_session"
+
+
+def _get_session_cookie(request: Request) -> Optional[str]:
+    return request.cookies.get(SESSION_COOKIE) or request.cookies.get(LEGACY_SESSION_COOKIE)
 
 
 def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
@@ -81,7 +86,7 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
     _setup_limiter = RateLimiter(max_requests=3, window_seconds=300)
 
     def _get_current_user(request: Request) -> Optional[str]:
-        token = request.cookies.get(SESSION_COOKIE)
+        token = _get_session_cookie(request)
         return auth_manager.get_username_for_token(token)
 
     @router.post("/setup")
@@ -150,15 +155,16 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
 
     @router.post("/logout")
     async def logout(request: Request, response: Response):
-        token = request.cookies.get(SESSION_COOKIE)
+        token = _get_session_cookie(request)
         if token:
             auth_manager.revoke_token(token)
         response.delete_cookie(SESSION_COOKIE, path="/")
+        response.delete_cookie(LEGACY_SESSION_COOKIE, path="/")
         return {"ok": True}
 
     @router.get("/status")
     async def auth_status(request: Request):
-        token = request.cookies.get(SESSION_COOKIE)
+        token = _get_session_cookie(request)
         result = auth_manager.status(token)
         result["signup_enabled"] = auth_manager.signup_enabled
         # Include the caller's effective privileges so the frontend can
@@ -180,7 +186,7 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
             raise HTTPException(401, "Not authenticated")
         if len(body.new_password) < 8:
             raise HTTPException(400, "Password must be at least 8 characters")
-        current_token = request.cookies.get(SESSION_COOKIE)
+        current_token = _get_session_cookie(request)
         ok = await asyncio.to_thread(auth_manager.change_password, user, body.current_password, body.new_password)
         if not ok:
             raise HTTPException(400, "Current password is incorrect")
@@ -512,9 +518,9 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
             import httpx
             from urllib.parse import urlparse
             # Strip any path/query the user accidentally pasted in the
-            # base URL (e.g. `http://host:8091/odysseus`) — otherwise
+            # base URL (e.g. `http://host:8091/basedcode`) — otherwise
             # the topic gets appended after the path and we publish to
-            # `/odysseus/odysseus` (which ntfy 404s on). ntfy itself
+            # `/basedcode/basedcode` (which ntfy 404s on). ntfy itself
             # only ever serves from the root.
             raw_base = (integ.get("base_url") or "").strip()
             parsed = urlparse(raw_base)
@@ -525,7 +531,7 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
             api_key = integ.get("api_key", "")
             auth_type = (integ.get("auth_type") or "none").lower()
             headers = {
-                "Title": "Odysseus connectivity test",
+                "Title": "Based code connectivity test",
                 "Tags": "white_check_mark",
                 "Priority": "default",
             }
@@ -538,7 +544,7 @@ def setup_auth_routes(auth_manager: AuthManager) -> APIRouter:
                 async with httpx.AsyncClient(timeout=8.0) as client:
                     r = await client.post(
                         full_url,
-                        content="Connectivity test from Odysseus. If you see this on your phone, ntfy is wired up correctly.",
+                        content="Connectivity test from Based code. If you see this on your phone, ntfy is wired up correctly.",
                         headers=headers,
                     )
                 if r.is_success:
