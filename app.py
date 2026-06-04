@@ -481,11 +481,22 @@ chat_handler      = components["chat_handler"]
 model_discovery   = components["model_discovery"]
 skills_manager    = components["skills_manager"]
 
-# TTS
-from services.tts import get_tts_service
+# ── Feature flag helper ──────────────────────────────────────────────────────
+# Each FEATURE_* var defaults to "true". Set it to false/0/no/off in .env to
+# skip registering that subsystem entirely (saves memory + import time).
+# install-termux.sh generates a .env with the heavy desktop-only features
+# pre-disabled so Termux users get a lean startup out of the box.
+def _feat(name: str, default: str = "true") -> bool:
+    return os.getenv(name, default).lower() not in ("false", "0", "no", "off")
 
-tts_service = get_tts_service()
-logger.info("TTS service initialized (provider managed via admin settings)")
+# TTS
+if _feat("FEATURE_TTS"):
+    from services.tts import get_tts_service
+    tts_service = get_tts_service()
+    logger.info("TTS service initialized (provider managed via admin settings)")
+else:
+    tts_service = None
+    logger.info("TTS service disabled (FEATURE_TTS=false)")
 
 # ========= EXCEPTION HANDLERS =========
 @app.exception_handler(SessionNotFoundError)
@@ -589,15 +600,19 @@ from routes.model_routes import setup_model_routes
 app.include_router(setup_model_routes(model_discovery))
 
 # TTS
-from routes.tts_routes import setup_tts_routes
-app.include_router(setup_tts_routes(tts_service))
+if _feat("FEATURE_TTS") and tts_service is not None:
+    from routes.tts_routes import setup_tts_routes
+    app.include_router(setup_tts_routes(tts_service))
 
 # STT
-from services.stt import get_stt_service
-stt_service = get_stt_service()
-from routes.stt_routes import setup_stt_routes
-app.include_router(setup_stt_routes(stt_service))
-logger.info("STT service initialized (provider managed via settings)")
+if _feat("FEATURE_STT"):
+    from services.stt import get_stt_service
+    stt_service = get_stt_service()
+    from routes.stt_routes import setup_stt_routes
+    app.include_router(setup_stt_routes(stt_service))
+    logger.info("STT service initialized (provider managed via settings)")
+else:
+    logger.info("STT service disabled (FEATURE_STT=false)")
 
 # Documents (artifacts/canvas)
 from routes.document_routes import setup_document_routes
@@ -605,16 +620,17 @@ document_router = setup_document_routes(session_manager, upload_handler)
 app.include_router(document_router)
 
 # Signatures (reusable image stamps)
-from routes.signature_routes import setup_signature_routes
-app.include_router(setup_signature_routes())
+if _feat("FEATURE_SIGNATURE"):
+    from routes.signature_routes import setup_signature_routes
+    app.include_router(setup_signature_routes())
 
-# Gallery (image library)
-from routes.gallery_routes import setup_gallery_routes
-app.include_router(setup_gallery_routes())
-
-# Persisted image-editor drafts (server-backed projects)
-from routes.editor_draft_routes import setup_editor_draft_routes
-app.include_router(setup_editor_draft_routes())
+# Gallery (image library) + persisted editor drafts
+if _feat("FEATURE_GALLERY"):
+    from routes.gallery_routes import setup_gallery_routes
+    app.include_router(setup_gallery_routes())
+    # Persisted image-editor drafts (server-backed projects)
+    from routes.editor_draft_routes import setup_editor_draft_routes
+    app.include_router(setup_editor_draft_routes())
 
 # Scheduled tasks + event bus
 from src.task_scheduler import TaskScheduler
@@ -633,20 +649,24 @@ calendar_router = setup_calendar_routes()
 app.include_router(calendar_router)
 
 # Shell (user-facing command execution)
-from routes.shell_routes import setup_shell_routes
-app.include_router(setup_shell_routes())
+if _feat("FEATURE_SHELL"):
+    from routes.shell_routes import setup_shell_routes
+    app.include_router(setup_shell_routes())
 
 # Cookbook (model download/serve/cache, cookbook state sync)
-from routes.cookbook_routes import setup_cookbook_routes
-app.include_router(setup_cookbook_routes())
+if _feat("FEATURE_COOKBOOK"):
+    from routes.cookbook_routes import setup_cookbook_routes
+    app.include_router(setup_cookbook_routes())
 
 # Hardware model fitting (cookbook "What Fits?" tab)
-from routes.hwfit_routes import setup_hwfit_routes
-app.include_router(setup_hwfit_routes())
+if _feat("FEATURE_HWFIT"):
+    from routes.hwfit_routes import setup_hwfit_routes
+    app.include_router(setup_hwfit_routes())
 
 # Model A/B Comparison
-from routes.compare_routes import setup_compare_routes
-app.include_router(setup_compare_routes(session_manager))
+if _feat("FEATURE_COMPARE"):
+    from routes.compare_routes import setup_compare_routes
+    app.include_router(setup_compare_routes(session_manager))
 
 # User Preferences
 from routes.prefs_routes import setup_prefs_routes
@@ -661,14 +681,16 @@ app.include_router(setup_font_routes())
 
 
 # MCP (Model Context Protocol)
-from src.mcp_manager import McpManager
-from src.agent_tools import set_mcp_manager
-from routes.mcp_routes import setup_mcp_routes
+mcp_manager = None
+if _feat("FEATURE_MCP"):
+    from src.mcp_manager import McpManager
+    from src.agent_tools import set_mcp_manager
+    from routes.mcp_routes import setup_mcp_routes
 
-mcp_manager = McpManager()
-set_mcp_manager(mcp_manager)
-app.include_router(setup_mcp_routes(mcp_manager))
-logger.info("MCP routes initialized")
+    mcp_manager = McpManager()
+    set_mcp_manager(mcp_manager)
+    app.include_router(setup_mcp_routes(mcp_manager))
+    logger.info("MCP routes initialized")
 
 # AI Interaction tools (debates, pipelines, self-managing AI, UI control)
 from src.ai_interaction import set_session_manager as set_ai_session_manager, set_memory_manager as set_ai_memory_manager, set_rag_manager as set_ai_rag_manager
@@ -692,33 +714,39 @@ from routes.note_routes import setup_note_routes
 app.include_router(setup_note_routes(task_scheduler))
 
 # Email
-from routes.email_routes import setup_email_routes
-email_router = setup_email_routes()
-app.include_router(email_router)
+email_router = None
+if _feat("FEATURE_EMAIL"):
+    from routes.email_routes import setup_email_routes
+    email_router = setup_email_routes()
+    app.include_router(email_router)
 
 # Codex integration — HTTP surface for the Codex plugin/MCP bridge. Reuses
 # api_token scopes (todos:read|write, email:read|draft|send) so external
 # Codex sessions can only touch the data the user explicitly allowed. Mounted
 # AFTER email so the codex_routes can borrow the email router for shared
 # search/threading helpers.
-from routes.codex_routes import setup_codex_routes, setup_claude_routes
-app.include_router(setup_codex_routes(
-    email_router=email_router,
-    memory_router=memory_router,
-    calendar_router=calendar_router,
-    document_router=document_router,
-))
-app.include_router(setup_claude_routes())
+if _feat("FEATURE_CODEX"):
+    from routes.codex_routes import setup_codex_routes, setup_claude_routes
+    app.include_router(setup_codex_routes(
+        email_router=email_router,
+        memory_router=memory_router,
+        calendar_router=calendar_router,
+        document_router=document_router,
+    ))
+    app.include_router(setup_claude_routes())
 
-from routes.vault_routes import setup_vault_routes
-app.include_router(setup_vault_routes())
+if _feat("FEATURE_VAULT"):
+    from routes.vault_routes import setup_vault_routes
+    app.include_router(setup_vault_routes())
 
 # Contacts (CardDAV)
 from routes.contacts_routes import setup_contacts_routes
 app.include_router(setup_contacts_routes())
 
-from companion import setup_companion_routes
-app.include_router(setup_companion_routes())
+# Companion bridge (LAN pairing — desktop feature, skip on Termux)
+if _feat("FEATURE_COMPANION"):
+    from companion import setup_companion_routes
+    app.include_router(setup_companion_routes())
 
 # ========= ROUTES (kept in app.py) =========
 
@@ -875,20 +903,21 @@ async def _startup_event():
         logger.warning("Failed to start background-job monitor: %s", _e)
     # MCP servers can be slow or blocked by local tooling. Connect them after
     # the web server is accepting traffic instead of delaying the whole UI.
-    async def _startup_mcp_connections():
-        try:
-            from src.builtin_mcp import register_builtin_servers
-            await register_builtin_servers(mcp_manager)
-        except BaseException as e:
-            logger.warning(f"Built-in MCP registration failed (non-critical): {type(e).__name__}: {e}")
-        try:
-            await asyncio.wait_for(mcp_manager.connect_all_enabled(), timeout=20)
-        except asyncio.TimeoutError:
-            logger.warning("User MCP startup timed out (non-critical)")
-        except BaseException as e:
-            logger.warning(f"MCP startup failed (non-critical): {type(e).__name__}: {e}")
+    if mcp_manager is not None:
+        async def _startup_mcp_connections():
+            try:
+                from src.builtin_mcp import register_builtin_servers
+                await register_builtin_servers(mcp_manager)
+            except BaseException as e:
+                logger.warning(f"Built-in MCP registration failed (non-critical): {type(e).__name__}: {e}")
+            try:
+                await asyncio.wait_for(mcp_manager.connect_all_enabled(), timeout=20)
+            except asyncio.TimeoutError:
+                logger.warning("User MCP startup timed out (non-critical)")
+            except BaseException as e:
+                logger.warning(f"MCP startup failed (non-critical): {type(e).__name__}: {e}")
 
-    _startup_tasks.append(asyncio.create_task(_startup_mcp_connections()))
+        _startup_tasks.append(asyncio.create_task(_startup_mcp_connections()))
 
     # Pre-warm the RAG tool index off the request path. Loading the local
     # embedding model + opening ChromaDB + indexing the built-in tools is a
@@ -1082,8 +1111,9 @@ async def _shutdown_event():
     except Exception as e:
         logger.warning(f"Webhook manager shutdown error: {e}")
     # Disconnect all MCP servers
-    try:
-        await mcp_manager.disconnect_all()
-    except Exception as e:
-        logger.warning(f"MCP shutdown error: {e}")
+    if mcp_manager is not None:
+        try:
+            await mcp_manager.disconnect_all()
+        except Exception as e:
+            logger.warning(f"MCP shutdown error: {e}")
     logger.info("Application shutdown complete")

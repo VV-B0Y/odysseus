@@ -1,0 +1,30 @@
+# requirements-termux-full.txt
+# Core + optional vector/RAG stack for Termux (Android ARM64).
+# Installs everything in requirements-termux-core.txt plus the ChromaDB
+# embedded server and local ONNX embedding model (~200 MB download on first run).
+#
+# Prerequisites (Termux):
+#   pkg install python openssl libffi libjpeg-turbo libpng zlib clang openblas
+#
+# Then:
+#   pip install -r requirements-termux-full.txt
+#
+# Set HF_HOME in .env to keep model files under your Termux home:
+#   HF_HOME=/data/data/com.termux/files/home/.cache/huggingface
+
+-r requirements-termux-core.txt
+
+# Vector store + local embeddings for RAG, semantic memory, and tool selection.
+# chromadb runs fully embedded (no separate server process) when CHROMADB_HOST
+# is unset; fastembed downloads a ~50 MB ONNX model on first use.
+chromadb
+fastembed
+
+# CalDAV sync (Nextcloud / Radicale / Fastmail / Apple)
+caldav
+
+# MCP protocol support
+mcp
+
+# DuckDuckGo as a search provider option
+duckduckgo-search
